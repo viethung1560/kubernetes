@@ -41,11 +41,16 @@ spec:
         - name: luanti-git-clone
           image: alpine/git:2.52.0
           command:
-            - sh
-            - -c
-            - |
-              [ -d /config/.minetest/games/ctf ] && echo "already installed" || git clone --recursive https://github.com/MT-CTF/capturetheflag.git /config/.minetest/games/ctf
-              [ -d /config/.minetest/worlds/world ] && chown -R 1000:1000 /config/.minetest/worlds/world
+              - sh
+              - -c
+              - |
+                if [ ! -d /config/.minetest/games/ctf ]; then
+                  git clone --recursive https://github.com/MT-CTF/capturetheflag.git /config/.minetest/games/ctf
+                else
+                  echo "already installed"
+                fi
+                mkdir -p /config/.minetest/worlds/world
+                chown -R 1000:1000 /config/.minetest/worlds/world
           volumeMounts:
             - name: luanti-data
               mountPath: /config/.minetest

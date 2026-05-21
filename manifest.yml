@@ -8,69 +8,72 @@ kind: PersistentVolumeClaim
 metadata:
   name: luanti-pvc
   namespace: luanti
-  spec:
-    storageClassName: "local-path"
-    accessModes:
-      - ReadWriteOnce
-    resources:
-      requests:
-        storage: 2Gi
+spec:                         
+  storageClassName: "local-path"
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
 ---
-apiVersion: v1
-kind: Deployement
+apiVersion: apps/v1           
+kind: Deployment              
 metadata:
   name: luanti
   namespace: luanti
 spec:
- replicas: 1
+  replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
       game: luanti
-    template:
-      metadate:
-        labels:
-          game: luanti
-      spec:
-        volumes:
-          - name: luanti-data
-            persistentVolumeClaim:
-              claimName: luanti-pvc
-        initContainers:
-          - name: luanti-git-clone
-            image: alpine/git:2.52.0
-            command:
-              - sh
-              - -c
-              - |
-                [ -d /config/.minetest/games/ctf ] && echo "already installed" || git clone -- recursive https://github.com/MT-CTF/capturetheflag.git /config/.minetest/games/ctf
-                [ -d /config/.minetest/worlds/world ] && chown -R 1000:1000 /config/.minetest/worlds/world
-            volumeMounts:
-              - name: luanti-data
-                mountPath: /config/.minetest
-          containers:
-            - name: luanti
-              image: lscr.io/linuxserver/luanti:lastest
-              env:
-                - name: TZ
-                  value: "Europe/Paris"
-                - name: PUID
-                  value: "1000"
-                - name: PGID
-                  value: "1000"
-                - name: CLI_ARGS
-                  value: "--gameid ctf"
-              ports:
-                - containterPort: 30001
-                  name: game
-                  protocol: UDP
-              volumesMounts:
-                - name: luanti-data
-                  mountPath: /config/.minetest
+  template:                    
+    metadata:                 
+      labels:
+        game: luanti
+    spec:
+      volumes:
+        - name: luanti-data
+          persistentVolumeClaim:
+            claimName: luanti-pvc
+      initContainers:
+        - name: luanti-git-clone
+          image: alpine/git:2.52.0
+          command:
+            - sh
+            - -c
+            - |
+              [ -d /config/.minetest/games/ctf ] && echo "already installed" || git clone --recursive https://github.com/MT-CTF/capturetheflag.git /config/.minetest/games/ctf
+              [ -d /config/.minetest/worlds/world ] && chown -R 1000:1000 /config/.minetest/worlds/world
+          volumeMounts:
+            - name: luanti-data
+              mountPath: /config/.minetest
+      containers:              
+        - name: luanti
+          image: lscr.io/linuxserver/luanti:latest   
+          env:
+            - name: TZ
+              value: "Europe/Paris"
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: CLI_ARGS
+              value: "--gameid ctf"
+          ports:
+            - containerPort: 30001     
+              name: game
+              protocol: UDP
+          volumeMounts:                
+            - name: luanti-data
+              mountPath: /config/.minetest
 ---
 apiVersion: v1
-namespace: luanti
+kind: Service                  
+metadata:                      
+  name: luanti                 
+  namespace: luanti            
 spec:
   type: LoadBalancer
   selector:
